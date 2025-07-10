@@ -74,9 +74,4 @@ See [`LICENSE`](LICENSE) for more information.
 
 ---
 
-## 🙋‍♂️ Author
-
-**IslandApps** – <https://islandapps.dev>
-
-Feel free to reach out on GitHub issues if you find a bug or have a feature request!
 Google Play is a trademark of Google LLC.
