@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>StreamCode – Yi 4 K Live QR Code Generator</title>
+
+  <!-- Tailwind utilities -->
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- QR-code & icons -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.js"></script>
+
+  <style>
+    /* ---------- COLOURS ---------- */
+    :root{ --blue-light:#0d6efd; --blue-dark:#0a58ca; }
+
+    /* ---------- GLOBAL / DRAG-FIX ---------- */
+    html,body{overflow-x:hidden;max-width:100vw;touch-action:pan-y;overscroll-behavior-y:none}
+    *{user-select:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+    input,select,textarea{user-select:text}
+    body{font-family:'Inter',sans-serif;margin:0;color:#111}
+    html{scroll-behavior:smooth}
+
+    /* ---------- LAYOUT ---------- */
+    .container{max-width:1200px;margin:0 auto;padding:1rem}
+    .gradient-bg{background:linear-gradient(135deg,var(--blue-light)0%,var(--blue-dark)100%);min-height:100vh}
+    .glass{background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.2);box-shadow:0 8px 32px rgba(0,0,0,.12)}
+
+    /* ---------- TYPOGRAPHY HEADER ---------- */
+    .logo-title   {font-size:2.5rem;font-weight:800;color:#fff;line-height:1.1}
+    .logo-subtext {color:rgba(255,255,255,.85);margin-top:.25rem}
+
+    /* ---------- INPUTS & BUTTONS ---------- */
+    .input-field{border:2px solid #e5e7eb;background:#fff;transition:.25s}
+    .input-field:focus{border-color:var(--blue-light);box-shadow:0 0 0 3px rgba(13,110,253,.18);outline:none}
+    .btn-primary{background:linear-gradient(135deg,var(--blue-light),var(--blue-dark));color:#fff;font-weight:600;transition:.25s;border:none}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 25px rgba(13,110,253,.35)}
+    .btn-secondary{background:#fff;border:2px solid var(--blue-light);color:var(--blue-light);transition:.25s}
+    .btn-secondary:hover{background:var(--blue-light);color:#fff}
+
+    /* ---------- PASSWORD EYE BUTTON ---------- */
+    #togglePasswordVisibility{
+      position:absolute;right:.75rem;top:50%;transform:translateY(-50%);     /* centred */
+      display:flex;align-items:center;justify-content:center;height:1.5rem;
+      color:#6b7280;transition:.2s;
+    }
+    #togglePasswordVisibility:hover{color:#374151}
+
+    /* ---------- CONFIG LIST ---------- */
+    .config-item{cursor:pointer;transition:.2s;border:2px solid transparent}
+    .config-item:hover{background:#f8fafc;border-color:var(--blue-light)}
+    .config-item.selected{background:var(--blue-light);color:#fff;border-color:var(--blue-light)}
+
+    /* ---------- QR BOX ---------- */
+    .qr-box{background:#fff;border-radius:20px;box-shadow:0 20px 40px rgba(0,0,0,.1);padding:2rem;display:flex;align-items:center;justify-content:center;min-height:300px}
+    #qrCode canvas{max-width:100%;height:auto}
+
+    /* ---------- MODAL ---------- */
+    .modal{backdrop-filter:blur(5px)}
+    .modal-content{transition:transform .25s;transform:scale(.95)}
+    .modal:not(.hidden) .modal-content{transform:scale(1)}
+
+    /* ---------- RESPONSIVE ---------- */
+    @media(max-width:768px){
+      .container{padding:.5rem}
+      .glass{margin:.5rem;border-radius:15px}
+      .qr-box{padding:1rem;min-height:250px}
+      .btn-primary,.btn-secondary{min-height:48px;font-size:16px}
+      .input-field{min-height:48px;font-size:16px}
+      .logo-title{font-size:2rem}
+    }
+
+    img,svg{-webkit-user-drag:none;pointer-events:none}
+  </style>
+</head>
+
+<body class="gradient-bg">
+  <div class="container">
+
+    <!-- ===== HEADER (text only, no icons) ===== -->
+    <div class="text-center mb-8">
+      <h1 class="logo-title">StreamCode</h1>
+      <p class="logo-subtext">Yi 4 K Live QR Generator</p>
+
+      <button id="offlineMode" class="btn-secondary mt-5 px-6 py-2 rounded-lg flex items-center mx-auto">
+        <i data-lucide="download" class="icon mr-2"></i>Offline Mode
+      </button>
+    </div>
+
+    <!-- ===== MAIN CARD ===== -->
+    <div class="glass rounded-3xl p-6 mb-8">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+        <!-- === FORM COLUMN === -->
+        <div class="space-y-6">
+          <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+            <i data-lucide="settings" class="icon mr-3"></i>Configuration
+          </h2>
+
+          <label class="block mb-3">
+            <span class="flex items-center text-sm font-semibold text-gray-700 mb-2">
+              <i data-lucide="tag" class="icon mr-2"></i>Name
+            </span>
+            <input id="configName" class="input-field w-full px-4 py-3 rounded-lg" placeholder="Studio setup">
+          </label>
+
+          <label class="block mb-3">
+            <span class="flex items-center text-sm font-semibold text-gray-700 mb-2">
+              <i data-lucide="link" class="icon mr-2"></i>RTMP URL / Key
+            </span>
+            <input id="rtmpUrl" class="input-field w-full px-4 py-3 rounded-lg" placeholder="rtmp://…">
+          </label>
+
+          <label class="block mb-3">
+            <span class="flex items-center text-sm font-semibold text-gray-700 mb-2">
+              <i data-lucide="wifi" class="icon mr-2"></i>Wi-Fi SSID
+            </span>
+            <input id="wifiSSID" class="input-field w-full px-4 py-3 rounded-lg" placeholder="Network">
+          </label>
+
+          <label class="block mb-3">
+            <span class="flex items-center text-sm font-semibold text-gray-700 mb-2">
+              <i data-lucide="lock" class="icon mr-2"></i>Wi-Fi Password
+            </span>
+            <div class="relative">
+              <input id="wifiPassword" type="password" class="input-field w-full px-4 py-3 pr-12 rounded-lg" placeholder="Password">
+              <button id="togglePasswordVisibility"><i data-lucide="eye" class="icon"></i></button>
+            </div>
+          </label>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label>
+              <span class="flex items-center text-sm font-semibold text-gray-700 mb-2">
+                <i data-lucide="monitor" class="icon mr-2"></i>Resolution
+              </span>
+              <select id="resolution" class="input-field w-full px-4 py-3 rounded-lg">
+                <option>1080p</option><option>720p</option><option>480p</option><option>360p</option>
+              </select>
+            </label>
+            <label>
+              <span class="flex items-center text-sm font-semibold text-gray-700 mb-2">
+                <i data-lucide="gauge" class="icon mr-2"></i>Bitrate
+              </span>
+              <select id="bitrate" class="input-field w-full px-4 py-3 rounded-lg">
+                <option>Auto</option><option>High</option><option>Medium</option><option>Low</option>
+              </select>
+            </label>
+          </div>
+
+          <button id="saveConfiguration" class="btn-primary w-full py-3 rounded-lg flex items-center justify-center">
+            <i data-lucide="save" class="icon mr-2"></i>Save Configuration
+          </button>
+
+          <div class="mt-8">
+            <h3 class="flex items-center text-lg font-semibold text-gray-700 mb-4">
+              <i data-lucide="clock" class="icon mr-2"></i>Recent Configurations
+            </h3>
+            <ul id="recentConfigurations" class="space-y-2 max-h-60 overflow-y-auto"></ul>
+          </div>
+        </div>
+
+        <!-- === QR COLUMN === -->
+        <div class="flex flex-col items-center">
+          <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center">
+            <i data-lucide="qr-code" class="icon mr-3"></i>QR Code
+          </h2>
+          <div id="selectedConfigName" class="text-lg font-semibold text-gray-700 mb-4 text-center"></div>
+          <div class="qr-box"><div id="qrCode"></div></div>
+          <p class="text-gray-600 text-sm mt-4 text-center max-w-md">Scan with your Yi 4 K camera.</p>
+        </div>
+      </div>
+    </div>
+
+    <footer class="text-center text-gray-200 text-sm">© 2025 IslandApps</footer>
+  </div>
+
+  <!-- ===== DELETE MODAL ===== -->
+  <div id="deleteModal" class="hidden fixed inset-0 bg-black bg-opacity-50 modal flex items-center justify-center p-4">
+    <div class="modal-content bg-white rounded-2xl p-6 max-w-md w-full">
+      <div class="text-center">
+        <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100 mb-4">
+          <i data-lucide="trash-2" class="icon text-red-600" style="width:24px;height:24px;"></i>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Delete Configuration</h3>
+        <p class="text-sm text-gray-600 mb-6">Are you sure? This cannot be undone.</p>
+        <div class="flex space-x-3">
+          <button id="cancelDelete" class="btn-secondary flex-1 py-2 rounded-lg">Cancel</button>
+          <button id="confirmDelete" class="bg-red-600 hover:bg-red-700 text-white flex-1 py-2 rounded-lg">Delete</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================  JS  ========================= -->
+  <script>
+    lucide.createIcons();
+
+    /* ---------- QR GENERATION ---------- */
+    const qrBox = document.getElementById('qrCode');
+    function makeQR(text){
+      qrBox.innerHTML='';
+      const size = innerWidth >= 768 ? 300 : 250;
+      new QRCode(qrBox,{text,width:size,height:size,colorDark:'#000',colorLight:'#fff',
+                        correctLevel:QRCode.CorrectLevel.H});
+    }
+    const updateQR = () => {
+      const rtmp = rtmpUrl.value.trim(),
+            ssid = wifiSSID.value.trim(),
+            pwd  = wifiPassword.value.trim(),
+            res  = resolution.value,
+            brUI = bitrate.value,
+            brMap= {Auto:'0',High:'3',Medium:'2',Low:'1'};
+      if(!rtmp&&!ssid&&!pwd){
+        qrBox.innerHTML='<div class="text-gray-400 text-center p-8">Fill the form to generate QR</div>';return;}
+      makeQR(JSON.stringify({ssid:ssid,pwd:pwd,res:res,rate:brMap[brUI],dur:'0',url:rtmp}));
+    };
+    ['rtmpUrl','wifiSSID','wifiPassword','resolution','bitrate']
+      .forEach(id=>document.getElementById(id).addEventListener('input',updateQR));
+
+    /* ---------- PASSWORD EYE ---------- */
+    togglePasswordVisibility.onclick=()=>{
+      wifiPassword.type=wifiPassword.type==='password'?'text':'password';
+      const icon=togglePasswordVisibility.querySelector('i');
+      icon.setAttribute('data-lucide',wifiPassword.type==='password'?'eye':'eye-off');
+      lucide.createIcons();
+    };
+
+    /* ---------- OFFLINE SAVE ---------- */
+    offlineMode.onclick=()=>{
+      const blob=new Blob([document.documentElement.outerHTML],{type:'text/html'});
+      const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='StreamCode_Offline.html';
+      document.body.appendChild(a);a.click();a.remove();
+    };
+
+    /* ---------- LOCAL-STORAGE CONFIGS ---------- */
+    let deleteIdx=null;
+    const loadConfigs=()=>{
+      const arr=JSON.parse(localStorage.getItem('streamCodeConfigurations')||'[]');
+      const ul=recentConfigurations;
+      ul.innerHTML='';
+      if(!arr.length){ul.innerHTML='<li class="text-gray-400 text-center py-4">No saved configurations</li>';return;}
+      arr.forEach((cfg,i)=>{
+        const li=document.createElement('li');
+        li.className='config-item flex justify-between items-center p-3 rounded-lg';
+        li.innerHTML=`<div class="flex-1 min-w-0">
+                        <div class="font-medium truncate">${cfg.name}</div>
+                        <div class="text-sm text-gray-500 truncate">${cfg.rtmpUrl}</div>
+                        <div class="text-xs text-gray-400">${cfg.resolution} • ${cfg.bitrate}</div>
+                      </div>
+                      <button class="ml-3 p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                        <i data-lucide="trash-2" class="icon"></i>
+                      </button>`;
+        li.onclick=e=>{
+          if(e.target.closest('button'))return;
+          document.querySelectorAll('.config-item').forEach(el=>el.classList.remove('selected'));
+          li.classList.add('selected');
+          selectedConfigName.textContent=cfg.name;
+          configName.value=cfg.name;
+          rtmpUrl.value=cfg.rtmpUrl;
+          wifiSSID.value=cfg.wifiSSID;
+          wifiPassword.value=cfg.wifiPassword;
+          resolution.value=cfg.resolution;
+          bitrate.value=cfg.bitrate;
+          updateQR();
+        };
+        li.querySelector('button').onclick=()=>{deleteIdx=i;deleteModal.classList.remove('hidden');};
+        ul.appendChild(li);
+      });
+      lucide.createIcons();
+    };
+    loadConfigs();
+
+    saveConfiguration.onclick=()=>{
+      if(!configName.value.trim()||!rtmpUrl.value.trim()||!wifiSSID.value.trim()||!wifiPassword.value.trim()){
+        alert('Please fill all required fields');return;}
+      const arr=JSON.parse(localStorage.getItem('streamCodeConfigurations')||'[]');
+      arr.push({name:configName.value.trim(),rtmpUrl:rtmpUrl.value.trim(),
+                wifiSSID:wifiSSID.value.trim(),wifiPassword:wifiPassword.value.trim(),
+                resolution:resolution.value,bitrate:bitrate.value});
+      localStorage.setItem('streamCodeConfigurations',JSON.stringify(arr));
+      loadConfigs();updateQR();
+    };
+
+    cancelDelete.onclick = () => deleteModal.classList.add('hidden');
+    confirmDelete.onclick=()=>{
+      const arr=JSON.parse(localStorage.getItem('streamCodeConfigurations')||'[]');
+      arr.splice(deleteIdx,1);localStorage.setItem('streamCodeConfigurations',JSON.stringify(arr));
+      loadConfigs();deleteModal.classList.add('hidden');
+    };
+
+    /* ---------- INITIAL ---------- */
+    updateQR();
+    document.addEventListener('contextmenu',e=>e.preventDefault());
+  </script>
+</body>
+</html>
