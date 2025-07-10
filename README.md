@@ -1,5 +1,12 @@
 # StreamCode
+
 Yi 4k Live QR Code Generator
+
+<a href="https://play.google.com/store/apps/details?id=com.streamcode.app">
+  <img alt="Get it on Google Play"
+       height="80"
+       src="https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png">
+</a>
 
 ---
 
@@ -72,4 +79,3 @@ See [`LICENSE`](LICENSE) for more information.
 **IslandApps** – <https://islandapps.dev>
 
 Feel free to reach out on GitHub issues if you find a bug or have a feature request!
-
